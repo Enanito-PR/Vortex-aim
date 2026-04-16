@@ -12,11 +12,29 @@ local Settings = {
     Aimbot = false,
     Fly = false,
     FOVSize = 100,
-    FlySpeed = 50, -- Velocidad inicial
+    FlySpeed = 50,
     Visible = true
 }
 
 local ESPData = {}
+
+--// FUNCIÓN NUEVA: Detectar roles de MM2
+local function GetPlayerColor(player)
+    local char = player.Character
+    if not char then return Color3.fromRGB(0, 255, 0) end -- Default Verde
+
+    -- Verifica si tiene el cuchillo (Asesino) o la pistola (Sheriff)
+    local hasKnife = char:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife")
+    local hasGun = char:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun")
+
+    if hasKnife then
+        return Color3.fromRGB(255, 0, 0) -- ROJO: Murderer
+    elseif hasGun then
+        return Color3.fromRGB(0, 0, 255) -- AZUL: Sheriff
+    else
+        return Color3.fromRGB(0, 255, 0) -- VERDE: Inocente
+    end
+end
 
 --// Funciones ESP
 local function CreateESP(player)
@@ -24,10 +42,8 @@ local function CreateESP(player)
         Box = Drawing.new("Square"),
         Tracer = Drawing.new("Line")
     }
-    data.Box.Color = Color3.new(1, 0, 0)
     data.Box.Thickness = 1.5
     data.Box.Filled = false
-    data.Tracer.Color = Color3.new(1, 1, 1)
     data.Tracer.Thickness = 1
     ESPData[player] = data
 end
@@ -44,7 +60,7 @@ for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p)
 Players.PlayerAdded:Connect(CreateESP)
 Players.PlayerRemoving:Connect(RemoveESP)
 
---// Interfaz GUI: Enanito_PR
+--// Interfaz GUI: Enanito_PR (Mismo código de interfaz que tenías)
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local MainFrame = Instance.new("Frame", ScreenGui)
 local UIListLayout = Instance.new("UIListLayout", MainFrame)
@@ -56,7 +72,6 @@ MainFrame.Position = UDim2.new(0.5, -100, 0.5, -175)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.Active = true
 MainFrame.Draggable = true
-
 UICorner.CornerRadius = UDim.new(0, 8)
 
 Title.Size = UDim2.new(1, 0, 0, 40)
@@ -86,41 +101,30 @@ local function CreateButton(settingKey, textOn, textOff, colorOn)
     end)
 end
 
--- Botones
 CreateButton("ESP", "ESP: ON", "ESP: OFF", Color3.fromRGB(0, 120, 255))
 CreateButton("Tracers", "Tracers: ON", "Tracers: OFF", Color3.fromRGB(0, 120, 255))
 CreateButton("Aimbot", "Aimbot: ON", "Aimbot: OFF", Color3.fromRGB(255, 0, 0))
 CreateButton("Fly", "Vuelo: ON", "Vuelo: OFF", Color3.fromRGB(0, 200, 100))
 
--- Input para FOV
-local FOVInput = Instance.new("TextBox", MainFrame)
-FOVInput.Size = UDim2.new(0, 180, 0, 30)
-FOVInput.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-FOVInput.PlaceholderText = "FOV Size: " .. Settings.FOVSize
-FOVInput.Text = ""
-FOVInput.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", FOVInput)
-FOVInput.FocusLost:Connect(function()
-    Settings.FOVSize = tonumber(FOVInput.Text) or Settings.FOVSize
-    FOVInput.PlaceholderText = "FOV Size: " .. Settings.FOVSize
-    FOVInput.Text = ""
-end)
+-- Inputs (FOV y Speed)
+local function CreateInput(placeholder, settingKey)
+    local input = Instance.new("TextBox", MainFrame)
+    input.Size = UDim2.new(0, 180, 0, 30)
+    input.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    input.PlaceholderText = placeholder .. Settings[settingKey]
+    input.Text = ""
+    input.TextColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", input)
+    input.FocusLost:Connect(function()
+        Settings[settingKey] = tonumber(input.Text) or Settings[settingKey]
+        input.PlaceholderText = placeholder .. Settings[settingKey]
+        input.Text = ""
+    end)
+end
 
--- Input para Fly Speed
-local SpeedInput = Instance.new("TextBox", MainFrame)
-SpeedInput.Size = UDim2.new(0, 180, 0, 30)
-SpeedInput.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-SpeedInput.PlaceholderText = "Fly Speed: " .. Settings.FlySpeed
-SpeedInput.Text = ""
-SpeedInput.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", SpeedInput)
-SpeedInput.FocusLost:Connect(function()
-    Settings.FlySpeed = tonumber(SpeedInput.Text) or Settings.FlySpeed
-    SpeedInput.PlaceholderText = "Fly Speed: " .. Settings.FlySpeed
-    SpeedInput.Text = ""
-end)
+CreateInput("FOV Size: ", "FOVSize")
+CreateInput("Fly Speed: ", "FlySpeed")
 
--- Círculo FOV
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Thickness = 1
 FOVCircle.Color = Color3.new(1, 1, 1)
@@ -132,7 +136,7 @@ RunService.RenderStepped:Connect(function()
     FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     FOVCircle.Visible = Settings.Aimbot 
 
-    -- Lógica de Vuelo
+    -- Vuelo
     if Settings.Fly then
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
@@ -143,34 +147,38 @@ RunService.RenderStepped:Connect(function()
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir += Camera.CFrame.RightVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0,1,0) end
             if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir -= Vector3.new(0,1,0) end
-            
             hrp.Velocity = moveDir * Settings.FlySpeed
-            hrp.CFrame = hrp.CFrame -- Mantiene la estabilidad
         end
     end
 
-    -- ESP & Aimbot
+    -- ESP & Aimbot con Colores de Rol
     for player, drawings in pairs(ESPData) do
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if hrp and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
             local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
             if onScreen then
+                local playerColor = GetPlayerColor(player) -- Aplicar color según rol
+                
                 drawings.Box.Visible = Settings.ESP
                 if Settings.ESP then
                     local sizeX, sizeY = 2200 / pos.Z, 3200 / pos.Z
                     drawings.Box.Size = Vector2.new(sizeX, sizeY)
                     drawings.Box.Position = Vector2.new(pos.X - sizeX / 2, pos.Y - sizeY / 2)
+                    drawings.Box.Color = playerColor
                 end
+                
                 drawings.Tracer.Visible = Settings.Tracers
                 if Settings.Tracers then
                     drawings.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
                     drawings.Tracer.To = Vector2.new(pos.X, pos.Y)
+                    drawings.Tracer.Color = playerColor
                 end
             else drawings.Box.Visible, drawings.Tracer.Visible = false, false end
         else drawings.Box.Visible, drawings.Tracer.Visible = false, false end
     end
 
+    -- Aimbot
     if Settings.Aimbot then
         local target = nil
         local shortestDistance = Settings.FOVSize
