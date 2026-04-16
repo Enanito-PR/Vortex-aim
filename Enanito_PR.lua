@@ -18,21 +18,20 @@ local Settings = {
 
 local ESPData = {}
 
---// FUNCIÓN NUEVA: Detectar roles de MM2
+--// Lógica de Roles MM2
 local function GetPlayerColor(player)
     local char = player.Character
-    if not char then return Color3.fromRGB(0, 255, 0) end -- Default Verde
+    if not char then return Color3.fromRGB(0, 255, 0) end
 
-    -- Verifica si tiene el cuchillo (Asesino) o la pistola (Sheriff)
     local hasKnife = char:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife")
     local hasGun = char:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun")
 
     if hasKnife then
-        return Color3.fromRGB(255, 0, 0) -- ROJO: Murderer
+        return Color3.fromRGB(255, 0, 0) -- Murder
     elseif hasGun then
-        return Color3.fromRGB(0, 0, 255) -- AZUL: Sheriff
+        return Color3.fromRGB(0, 0, 255) -- Sheriff
     else
-        return Color3.fromRGB(0, 255, 0) -- VERDE: Inocente
+        return Color3.fromRGB(0, 255, 0) -- Inocente
     end
 end
 
@@ -60,13 +59,15 @@ for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p)
 Players.PlayerAdded:Connect(CreateESP)
 Players.PlayerRemoving:Connect(RemoveESP)
 
---// Interfaz GUI: Enanito_PR (Mismo código de interfaz que tenías)
+--// INTERFAZ GUI: Enanito_PR (Colapsable)
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local MainFrame = Instance.new("Frame", ScreenGui)
-local UIListLayout = Instance.new("UIListLayout", MainFrame)
 local UICorner = Instance.new("UICorner", MainFrame)
-local Title = Instance.new("TextLabel", MainFrame)
+local Title = Instance.new("TextButton", MainFrame) 
+local ControlFrame = Instance.new("Frame", MainFrame) 
+local UIListLayout = Instance.new("UIListLayout", ControlFrame)
 
+-- Panel Principal
 MainFrame.Size = UDim2.new(0, 200, 0, 350)
 MainFrame.Position = UDim2.new(0.5, -100, 0.5, -175)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -74,18 +75,43 @@ MainFrame.Active = true
 MainFrame.Draggable = true
 UICorner.CornerRadius = UDim.new(0, 8)
 
+-- Título (Botón para cerrar/abrir)
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.BackgroundTransparency = 1
-Title.Text = "Enanito_PR"
+Title.Text = "Enanito_PR [▼]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 18
 
+-- Contenedor de Botones
+ControlFrame.Name = "Controls"
+ControlFrame.Size = UDim2.new(1, 0, 1, -40)
+ControlFrame.Position = UDim2.new(0, 0, 0, 40)
+ControlFrame.BackgroundTransparency = 1
+ControlFrame.ClipsDescendants = true -- Esto hace que los controles se "corten" al cerrar
+
 UIListLayout.Padding = UDim.new(0, 7)
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
+-- Lógica de colapsar
+local expanded = true
+Title.MouseButton1Click:Connect(function()
+    expanded = not expanded
+    if expanded then
+        MainFrame:TweenSize(UDim2.new(0, 200, 0, 350), "Out", "Quad", 0.3, true)
+        ControlFrame.Visible = true
+        Title.Text = "Enanito_PR [▼]"
+    else
+        MainFrame:TweenSize(UDim2.new(0, 200, 0, 40), "Out", "Quad", 0.3, true)
+        task.wait(0.3) -- Espera a que termine la animación para ocultar
+        if not expanded then ControlFrame.Visible = false end
+        Title.Text = "Enanito_PR [▲]"
+    end
+end)
+
+-- Función para crear botones dentro del ControlFrame
 local function CreateButton(settingKey, textOn, textOff, colorOn)
-    local btn = Instance.new("TextButton", MainFrame)
+    local btn = Instance.new("TextButton", ControlFrame)
     btn.Size = UDim2.new(0, 180, 0, 35)
     btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     btn.Text = textOff
@@ -101,14 +127,15 @@ local function CreateButton(settingKey, textOn, textOff, colorOn)
     end)
 end
 
+-- Crear los botones
 CreateButton("ESP", "ESP: ON", "ESP: OFF", Color3.fromRGB(0, 120, 255))
 CreateButton("Tracers", "Tracers: ON", "Tracers: OFF", Color3.fromRGB(0, 120, 255))
 CreateButton("Aimbot", "Aimbot: ON", "Aimbot: OFF", Color3.fromRGB(255, 0, 0))
 CreateButton("Fly", "Vuelo: ON", "Vuelo: OFF", Color3.fromRGB(0, 200, 100))
 
--- Inputs (FOV y Speed)
+-- Función para crear inputs dentro del ControlFrame
 local function CreateInput(placeholder, settingKey)
-    local input = Instance.new("TextBox", MainFrame)
+    local input = Instance.new("TextBox", ControlFrame)
     input.Size = UDim2.new(0, 180, 0, 30)
     input.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     input.PlaceholderText = placeholder .. Settings[settingKey]
@@ -125,18 +152,17 @@ end
 CreateInput("FOV Size: ", "FOVSize")
 CreateInput("Fly Speed: ", "FlySpeed")
 
+--// BUCLE DE RENDERIZADO (ESP, AIMBOT, FLY)
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Thickness = 1
 FOVCircle.Color = Color3.new(1, 1, 1)
 FOVCircle.Transparency = 0.5
 
--- Bucle Principal
 RunService.RenderStepped:Connect(function()
     FOVCircle.Radius = Settings.FOVSize
     FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     FOVCircle.Visible = Settings.Aimbot 
 
-    -- Vuelo
     if Settings.Fly then
         local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
@@ -151,15 +177,13 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
-    -- ESP & Aimbot con Colores de Rol
     for player, drawings in pairs(ESPData) do
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if hrp and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
             local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
             if onScreen then
-                local playerColor = GetPlayerColor(player) -- Aplicar color según rol
-                
+                local playerColor = GetPlayerColor(player)
                 drawings.Box.Visible = Settings.ESP
                 if Settings.ESP then
                     local sizeX, sizeY = 2200 / pos.Z, 3200 / pos.Z
@@ -167,7 +191,6 @@ RunService.RenderStepped:Connect(function()
                     drawings.Box.Position = Vector2.new(pos.X - sizeX / 2, pos.Y - sizeY / 2)
                     drawings.Box.Color = playerColor
                 end
-                
                 drawings.Tracer.Visible = Settings.Tracers
                 if Settings.Tracers then
                     drawings.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
@@ -178,7 +201,6 @@ RunService.RenderStepped:Connect(function()
         else drawings.Box.Visible, drawings.Tracer.Visible = false, false end
     end
 
-    -- Aimbot
     if Settings.Aimbot then
         local target = nil
         local shortestDistance = Settings.FOVSize
@@ -198,7 +220,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Toggle Menu
+-- Toggle Menu Completo con CTRL
 UserInputService.InputBegan:Connect(function(input, processed)
     if not processed and input.KeyCode == Enum.KeyCode.LeftControl then
         Settings.Visible = not Settings.Visible
