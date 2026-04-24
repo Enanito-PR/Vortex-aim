@@ -114,12 +114,12 @@ Title.MouseButton1Click:Connect(function()
     if expanded then
         MainFrame:TweenSize(UDim2.new(0, 200, 0, 260), "Out", "Quad", 0.3, true)
         ControlFrame.Visible = true
-        Title.Text = "Enanito_PR [▼]"
+        Title.Text = "Vortex-Aim [▼]"
     else
         MainFrame:TweenSize(UDim2.new(0, 200, 0, 40), "Out", "Quad", 0.3, true)
         task.wait(0.3)
         if not expanded then ControlFrame.Visible = false end
-        Title.Text = "Enanito_PR [▲]"
+        Title.Text = "Vortex-Aim [▲]"
     end
 end)
 
