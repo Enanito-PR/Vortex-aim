@@ -77,7 +77,7 @@ for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then CreateESP(p)
 Players.PlayerAdded:Connect(CreateESP)
 Players.PlayerRemoving:Connect(RemoveESP)
 
---// Interfaz GUI: Enanito_PR (Colapsable)
+--// Interfaz GUI: Vortex-Aim (Colapsable)
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 local MainFrame = Instance.new("Frame", ScreenGui)
 local UICorner = Instance.new("UICorner", MainFrame)
