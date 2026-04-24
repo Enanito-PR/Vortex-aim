@@ -94,7 +94,7 @@ UICorner.CornerRadius = UDim.new(0, 8)
 
 Title.Size = UDim2.new(1, 0, 0, 40)
 Title.BackgroundTransparency = 1
-Title.Text = "Enanito_PR [▼]"
+Title.Text = "Vortex-Aim [▼]"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 18
